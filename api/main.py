@@ -1,6 +1,5 @@
 import os
 import json
-import requests
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
@@ -12,6 +11,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
 
@@ -19,11 +19,13 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL is not set")
 
-pool: asyncpg.Pool = None  # type: ignore
+pool: asyncpg.Pool = None
 
-HF_API_KEY = os.getenv("HF_API_KEY")
-HF_MODEL = "mistralai/Mistral-7B-Instruct-v0.2"
-HF_API_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
+# Mistral клиент (OpenAI-совместимый)
+mistral_client = OpenAI(
+    api_key=os.getenv("MISTRAL_API_KEY"),
+    base_url="https://api.mistral.ai/v1"
+)
 
 
 @asynccontextmanager
@@ -92,44 +94,29 @@ def extract_article(url: str) -> dict:
 
 
 def generate_summary(text: str) -> dict:
-    text = text[:8000]
-    prompt = f"""<s>[INST] Проанализируй следующий текст и верни JSON с двумя полями:
-1. "summary" - краткая выжимка на 3-5 пунктов (каждый пункт с новой строки)
+    text = text[:10000]
+    prompt = f"""Проанализируй следующий текст и верни JSON с двумя полями:
+1. "summary" - краткая выжимка на 3-5 пунктов (каждый пункт с новой строки, начинай с "- ")
 2. "tags" - массив из 3 релевантных тегов (короткие слова на русском)
 
 Текст:
 {text}
 
-Верни ТОЛЬКО JSON, без пояснений. [/INST]"""
+Верни ТОЛЬКО валидный JSON, без пояснений, без markdown."""
 
     try:
-        response = requests.post(
-            HF_API_URL,
-            headers={
-                "Authorization": f"Bearer {HF_API_KEY}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "inputs": prompt,
-                "parameters": {"max_new_tokens": 500, "return_full_text": False}
-            },
-            timeout=30
+        response = mistral_client.chat.completions.create(
+            model="mistral-small-latest",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=500,
         )
-        
-        if response.status_code != 200:
-            print(f"HF error: {response.status_code} - {response.text}")
-            return {"summary": "Ошибка генерации саммари", "tags": []}
-        
-        result = response.json()
-        generated_text = result[0]["generated_text"].strip()
-        
-        # Убираем markdown-обёртку, если есть
-        if generated_text.startswith("```"):
-            generated_text = generated_text.split("\n", 1)[1].rsplit("```", 1)[0]
-        
-        return json.loads(generated_text)
+        content = response.choices[0].message.content.strip()
+        if content.startswith("```"):
+            content = content.split("\n", 1)[1].rsplit("```", 1)[0]
+        return json.loads(content)
     except Exception as e:
-        print(f"HF error: {e}")
+        print(f"Mistral error: {e}")
         return {"summary": "Ошибка генерации саммари", "tags": []}
 
 
