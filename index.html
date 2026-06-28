@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Reader</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 { margin-bottom: 20px; color: #58a6ff; }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        input {
+            flex: 1;
+            padding: 12px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 14px;
+        }
+        button {
+            padding: 12px 24px;
+            background: #238636;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button:hover { background: #2ea043; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .article {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .article-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .article-title a {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+        .article-title a:hover { text-decoration: underline; }
+        .article-meta {
+            font-size: 12px;
+            color: #8b949e;
+        }
+        .tag {
+            display: inline-block;
+            background: #1f6feb;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-right: 4px;
+        }
+        .loading { text-align: center; padding: 20px; color: #8b949e; }
+    </style>
+</head>
+<body>
+    <h1>📚 Smart Reader</h1>
+    
+    <div class="input-group">
+        <input type="url" id="urlInput" placeholder="Вставь URL статьи..." />
+        <button id="addBtn" onclick="addArticle()">Добавить</button>
+    </div>
+    
+    <div id="articlesList">
+        <div class="loading">Загрузка...</div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://smart-reader-nine.vercel.app';
+
+        async function loadArticles() {
+            try {
+                const res = await fetch(`${API_BASE}/articles`);
+                const articles = await res.json();
+                
+                const list = document.getElementById('articlesList');
+                if (articles.length === 0) {
+                    list.innerHTML = '<div class="loading">Пока нет статей. Добавь первую!</div>';
+                    return;
+                }
+                
+                list.innerHTML = articles.map(a => `
+                    <div class="article">
+                        <div class="article-title">
+                            <a href="${a.url}" target="_blank">${a.title || a.url}</a>
+                        </div>
+                        ${a.tags && a.tags.length > 0 ? `
+                            <div style="margin-top: 8px;">
+                                ${a.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                        <div class="article-meta" style="margin-top: 8px;">
+                            ${new Date(a.created_at).toLocaleDateString('ru-RU')}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                document.getElementById('articlesList').innerHTML = 
+                    '<div class="loading">Ошибка загрузки</div>';
+            }
+        }
+
+        async function addArticle() {
+            const url = document.getElementById('urlInput').value.trim();
+            if (!url) return;
+            
+            const btn = document.getElementById('addBtn');
+            btn.disabled = true;
+            btn.textContent = 'Добавляем...';
+            
+            try {
+                await fetch(`${API_BASE}/articles`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                
+                document.getElementById('urlInput').value = '';
+                await loadArticles();
+            } catch (err) {
+                alert('Ошибка добавления');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Добавить';
+            }
+        }
+
+        loadArticles();
+    </script>
+</body>
+</html>
