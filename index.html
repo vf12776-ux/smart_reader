@@ -98,21 +98,26 @@
                     return;
                 }
                 
-                list.innerHTML = articles.map(a => `
-                    <div class="article">
-                        <div class="article-title">
-                            <a href="${a.url}" target="_blank">${a.title || a.url}</a>
-                        </div>
-                        ${a.tags && a.tags.length > 0 ? `
-                            <div style="margin-top: 8px;">
-                                ${a.tags.map(t => `<span class="tag">${t}</span>`).join('')}
-                            </div>
-                        ` : ''}
-                        <div class="article-meta" style="margin-top: 8px;">
-                            ${new Date(a.created_at).toLocaleDateString('ru-RU')}
-                        </div>
-                    </div>
-                `).join('');
+               list.innerHTML = articles.map(a => `
+    <div class="article">
+        <div class="article-title">
+            <a href="${a.url}" target="_blank">${a.title || a.url}</a>
+        </div>
+        ${a.summary ? `
+            <div style="margin-top: 12px; padding: 12px; background: #0d1117; border-radius: 4px; font-size: 14px; line-height: 1.6; color: #c9d1d9;">
+                ${a.summary.replace(/\n/g, '<br>')}
+            </div>
+        ` : '<div style="margin-top: 8px; color: #8b949e; font-style: italic;">Саммари не сгенерировано</div>'}
+        ${a.tags && a.tags.length > 0 ? `
+            <div style="margin-top: 8px;">
+                ${a.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+            </div>
+        ` : ''}
+        <div class="article-meta" style="margin-top: 8px;">
+            ${new Date(a.created_at).toLocaleDateString('ru-RU')}
+        </div>
+    </div>
+`).join('');
             } catch (err) {
                 document.getElementById('articlesList').innerHTML = 
                     '<div class="loading">Ошибка загрузки</div>';
