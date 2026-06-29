@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Reader</title>
+    <link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#238636">
+<link rel="apple-touch-icon" href="/icon-192.png">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -74,6 +77,9 @@
 </head>
 <body>
     <h1>📚 Smart Reader</h1>
+    <button id="installBtn" style="display:none; margin-bottom: 20px; padding: 10px 20px; background: #1f6feb; border: none; border-radius: 6px; color: white; cursor: pointer; font-weight: 600;">
+    📥 Установить приложение
+</button>
     
     <div class="input-group">
         <input type="url" id="urlInput" placeholder="Вставь URL статьи..." />
@@ -151,5 +157,25 @@
 
         loadArticles();
     </script>
+    <script>
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = 'block';
+    });
+    
+    installBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            installBtn.style.display = 'none';
+        }
+        deferredPrompt = null;
+    });
+</script>
 </body>
 </html>
