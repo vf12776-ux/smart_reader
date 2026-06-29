@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Reader</title>
     <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#238636">
-<link rel="apple-touch-icon" href="/icon-192.png">
+    <meta name="theme-color" content="#238636">
+    <link rel="apple-touch-icon" href="/icon-192.png">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -73,13 +73,80 @@
             margin-right: 4px;
         }
         .loading { text-align: center; padding: 20px; color: #8b949e; }
+        
+        /* Модальное окно установки */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 480px;
+            width: 90%;
+            text-align: center;
+            animation: slideUp 0.3s;
+        }
+        .modal-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+        .modal h2 {
+            color: #58a6ff;
+            margin-bottom: 12px;
+            font-size: 24px;
+        }
+        .modal p {
+            color: #8b949e;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .modal-btn {
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            font-size: 14px;
+        }
+        .modal-btn-primary {
+            background: #238636;
+            color: white;
+        }
+        .modal-btn-primary:hover { background: #2ea043; }
+        .modal-btn-secondary {
+            background: transparent;
+            color: #8b949e;
+            border: 1px solid #30363d;
+        }
+        .modal-btn-secondary:hover { background: #21262d; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
     </style>
 </head>
 <body>
     <h1>📚 Smart Reader</h1>
-    <button id="installBtn" style="display:none; margin-bottom: 20px; padding: 10px 20px; background: #1f6feb; border: none; border-radius: 6px; color: white; cursor: pointer; font-weight: 600;">
-    📥 Установить приложение
-</button>
     
     <div class="input-group">
         <input type="url" id="urlInput" placeholder="Вставь URL статьи..." />
@@ -90,8 +157,80 @@
         <div class="loading">Загрузка...</div>
     </div>
 
+    <!-- Модальное окно установки -->
+    <div class="modal-overlay" id="installModal">
+        <div class="modal">
+            <div class="modal-icon">📲</div>
+            <h2>Установи Smart Reader</h2>
+            <p>
+                Получи быстрый доступ к приложению прямо с рабочего стола.<br>
+                Работает как обычная программа — без вкладок браузера.
+            </p>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-primary" onclick="installApp()">
+                    📥 Установить
+                </button>
+                <button class="modal-btn modal-btn-secondary" onclick="closeModal()">
+                    Позже
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_BASE = 'https://smart-reader-nine.vercel.app';
+        let deferredPrompt = null;
+
+        // Регистрация service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('SW registered'))
+                .catch(err => console.log('SW error:', err));
+        }
+
+        // Обработка события установки PWA
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Показываем модалку, если пользователь ещё не закрывал её
+            if (!localStorage.getItem('installDismissed')) {
+                document.getElementById('installModal').classList.add('show');
+            }
+        });
+
+        // Отслеживаем, когда приложение установлено
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA installed');
+            deferredPrompt = null;
+            document.getElementById('installModal').classList.remove('show');
+            localStorage.setItem('appInstalled', 'true');
+        });
+
+        function installApp() {
+            if (!deferredPrompt) {
+                closeModal();
+                return;
+            }
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choice) => {
+                if (choice.outcome === 'accepted') {
+                    console.log('User installed');
+                }
+                deferredPrompt = null;
+                document.getElementById('installModal').classList.remove('show');
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('installModal').classList.remove('show');
+            localStorage.setItem('installDismissed', 'true');
+        }
+
+        // Скрываем модалку, если приложение уже установлено
+        if (window.matchMedia('(display-mode: standalone)').matches || localStorage.getItem('appInstalled')) {
+            // Уже установлено — ничего не делаем
+        }
 
         async function loadArticles() {
             try {
@@ -104,26 +243,26 @@
                     return;
                 }
                 
-               list.innerHTML = articles.map(a => `
-    <div class="article">
-        <div class="article-title">
-            <a href="${a.url}" target="_blank">${a.title || a.url}</a>
-        </div>
-        ${a.summary ? `
-            <div style="margin-top: 12px; padding: 12px; background: #0d1117; border-radius: 4px; font-size: 14px; line-height: 1.6; color: #c9d1d9;">
-                ${a.summary.replace(/\n/g, '<br>')}
-            </div>
-        ` : '<div style="margin-top: 8px; color: #8b949e; font-style: italic;">Саммари не сгенерировано</div>'}
-        ${a.tags && a.tags.length > 0 ? `
-            <div style="margin-top: 8px;">
-                ${a.tags.map(t => `<span class="tag">${t}</span>`).join('')}
-            </div>
-        ` : ''}
-        <div class="article-meta" style="margin-top: 8px;">
-            ${new Date(a.created_at).toLocaleDateString('ru-RU')}
-        </div>
-    </div>
-`).join('');
+                list.innerHTML = articles.map(a => `
+                    <div class="article">
+                        <div class="article-title">
+                            <a href="${a.url}" target="_blank">${a.title || a.url}</a>
+                        </div>
+                        ${a.summary ? `
+                            <div style="margin-top: 12px; padding: 12px; background: #0d1117; border-radius: 4px; font-size: 14px; line-height: 1.6; color: #c9d1d9;">
+                                ${a.summary.replace(/\n/g, '<br>')}
+                            </div>
+                        ` : '<div style="margin-top: 8px; color: #8b949e; font-style: italic;">Саммари не сгенерировано</div>'}
+                        ${a.tags && a.tags.length > 0 ? `
+                            <div style="margin-top: 8px;">
+                                ${a.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                        <div class="article-meta" style="margin-top: 8px;">
+                            ${new Date(a.created_at).toLocaleDateString('ru-RU')}
+                        </div>
+                    </div>
+                `).join('');
             } catch (err) {
                 document.getElementById('articlesList').innerHTML = 
                     '<div class="loading">Ошибка загрузки</div>';
@@ -157,25 +296,5 @@
 
         loadArticles();
     </script>
-    <script>
-    let deferredPrompt;
-    const installBtn = document.getElementById('installBtn');
-    
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        installBtn.style.display = 'block';
-    });
-    
-    installBtn.addEventListener('click', async () => {
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-            installBtn.style.display = 'none';
-        }
-        deferredPrompt = null;
-    });
-</script>
 </body>
 </html>
