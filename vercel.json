@@ -8,6 +8,9 @@
     { "src": "icon-512.png", "use": "@vercel/static" }
   ],
   "routes": [
+    { "src": "/auto-register", "dest": "api/main.py" },
+    { "src": "/register", "dest": "api/main.py" },
+    { "src": "/login", "dest": "api/main.py" },
     { "src": "/articles(.*)", "dest": "api/main.py" },
     { "src": "/health", "dest": "api/main.py" },
     { "src": "/docs", "dest": "api/main.py" },
