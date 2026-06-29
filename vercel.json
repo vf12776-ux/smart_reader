@@ -8,7 +8,10 @@
     { "src": "icon-512.png", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "api/main.py" },
+    { "src": "/articles(.*)", "dest": "api/main.py" },
+    { "src": "/health", "dest": "api/main.py" },
+    { "src": "/docs", "dest": "api/main.py" },
+    { "src": "/openapi.json", "dest": "api/main.py" },
     { "src": "/manifest.json", "dest": "/manifest.json" },
     { "src": "/sw.js", "dest": "/sw.js" },
     { "src": "/icon-(.*)", "dest": "/icon-$1" },
