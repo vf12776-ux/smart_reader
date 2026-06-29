@@ -221,6 +221,32 @@ async def login(user: UserLogin):
     return {"access_token": create_token(row["id"]), "token_type": "bearer"}
 
 
+@app.post("/auto-register", response_model=Token)
+async def auto_register(user: UserRegister):
+    if len(user.username) < 2:
+        raise HTTPException(status_code=400, detail="Имя слишком короткое")
+    
+    import secrets
+    random_password = secrets.token_urlsafe(32)
+    password_hash = pwd_context.hash(random_password)
+    
+    username = user.username
+    suffix = 1
+    while True:
+        try:
+            row = await pool.fetchrow(
+                "INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id",
+                username, password_hash
+            )
+            break
+        except asyncpg.UniqueViolationError:
+            username = f"{user.username}{suffix}"
+            suffix += 1
+            if suffix > 100:
+                raise HTTPException(status_code=400, detail="Попробуй другое имя")
+    
+    return {"access_token": create_token(row["id"]), "token_type": "bearer"}
+
 @app.post("/articles", response_model=ArticleOut)
 async def add_article(payload: ArticleIn, user_id: int = Depends(get_current_user)):
     url = str(payload.url)
