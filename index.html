@@ -222,6 +222,39 @@
     </style>
 </head>
 <body>
+    <!-- Экран авторизации -->
+<div id="authScreen" style="display:none; max-width: 400px; margin: 50px auto;">
+    <div style="background: #161b22; padding: 32px; border-radius: 12px; border: 1px solid #30363d;">
+        <h2 style="color: #58a6ff; margin-bottom: 24px; text-align: center;">📚 Smart Reader</h2>
+        
+        <div id="loginForm">
+            <h3 style="margin-bottom: 16px;">Вход</h3>
+            <input type="text" id="loginUsername" placeholder="Логин" style="width: 100%; margin-bottom: 12px;">
+            <input type="password" id="loginPassword" placeholder="Пароль" style="width: 100%; margin-bottom: 16px;">
+            <button onclick="login()" style="width: 100%; margin-bottom: 12px;">Войти</button>
+            <p style="text-align: center; color: #8b949e;">
+                Нет аккаунта? <a href="#" onclick="document.getElementById('loginForm').style.display='none'; document.getElementById('registerForm').style.display='block';" style="color: #58a6ff;">Зарегистрироваться</a>
+            </p>
+        </div>
+        
+        <div id="registerForm" style="display:none;">
+            <h3 style="margin-bottom: 16px;">Регистрация</h3>
+            <input type="text" id="regUsername" placeholder="Логин" style="width: 100%; margin-bottom: 12px;">
+            <input type="password" id="regPassword" placeholder="Пароль" style="width: 100%; margin-bottom: 16px;">
+            <button onclick="register()" style="width: 100%; margin-bottom: 12px;">Зарегистрироваться</button>
+            <p style="text-align: center; color: #8b949e;">
+                Уже есть аккаунт? <a href="#" onclick="document.getElementById('registerForm').style.display='none'; document.getElementById('loginForm').style.display='block';" style="color: #58a6ff;">Войти</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Основное приложение -->
+<div id="mainApp" style="display:none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>📚 Smart Reader</h1>
+        <button onclick="logout()" style="padding: 8px 16px; background: #da3633;">Выйти</button>
+    </div>
     <h1>📚 Smart Reader</h1>
     
     <div class="input-group">
@@ -303,164 +336,216 @@
 
     <script>
         const API_BASE = 'https://smart-reader-nine.vercel.app';
-        let deferredPrompt = null;
-        
-        // Определяем платформу
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                            window.navigator.standalone;
+let token = localStorage.getItem('token');
+let deferredPrompt = null;
 
-        // Регистрация service worker
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-                .then(reg => console.log('SW registered'))
-                .catch(err => console.log('SW error:', err));
-        }
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                    window.navigator.standalone;
 
-        // Показываем кнопку установки, если приложение ещё не установлено
-        function initInstallButton() {
-            if (isStandalone) return; // Уже установлено
-            if (localStorage.getItem('installDismissed')) return; // Пользователь закрыл
-            
-            document.getElementById('installFab').style.display = 'flex';
-            
-            // Для Android — показываем модалку сразу при первом визите
-            if (!isIOS && !localStorage.getItem('androidModalShown')) {
-                window.addEventListener('beforeinstallprompt', (e) => {
-                    e.preventDefault();
-                    deferredPrompt = e;
-                    document.getElementById('androidModal').classList.add('show');
-                    localStorage.setItem('androidModalShown', 'true');
-                });
-            }
-        }
-
-        function showInstallModal() {
-            if (isIOS) {
-                document.getElementById('iosModal').classList.add('show');
-            } else if (deferredPrompt) {
-                document.getElementById('androidModal').classList.add('show');
-            } else {
-                // Если beforeinstallprompt не сработал — показываем iOS-инструкцию как fallback
-                document.getElementById('iosModal').classList.add('show');
-            }
-        }
-
-        function installAndroid() {
-            if (!deferredPrompt) {
-                closeModal('androidModal');
-                return;
-            }
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choice) => {
-                deferredPrompt = null;
-                closeModal('androidModal');
-                if (choice.outcome === 'accepted') {
-                    localStorage.setItem('appInstalled', 'true');
-                    document.getElementById('installFab').style.display = 'none';
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+        reg.update();
+        setInterval(() => reg.update(), 5 * 60 * 1000);
+        reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    window.location.reload();
                 }
             });
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('show');
-            localStorage.setItem('installDismissed', 'true');
-            document.getElementById('installFab').style.display = 'none';
-        }
-
-        // Отслеживаем установку
-        window.addEventListener('appinstalled', () => {
-            deferredPrompt = null;
-            document.getElementById('installFab').style.display = 'none';
-            localStorage.setItem('appInstalled', 'true');
         });
-
-        async function loadArticles() {
-            try {
-                const res = await fetch(`${API_BASE}/articles`);
-                const articles = await res.json();
-                
-                const list = document.getElementById('articlesList');
-                if (articles.length === 0) {
-                    list.innerHTML = '<div class="loading">Пока нет статей. Добавь первую!</div>';
-                    return;
-                }
-                
-                list.innerHTML = articles.map(a => `
-                    <div class="article">
-                        <div class="article-title">
-                            <a href="${a.url}" target="_blank">${a.title || a.url}</a>
-                        </div>
-                        ${a.summary ? `
-                            <div style="margin-top: 12px; padding: 12px; background: #0d1117; border-radius: 4px; font-size: 14px; line-height: 1.6; color: #c9d1d9;">
-                                ${a.summary.replace(/\n/g, '<br>')}
-                            </div>
-                        ` : '<div style="margin-top: 8px; color: #8b949e; font-style: italic;">Саммари не сгенерировано</div>'}
-                        ${a.tags && a.tags.length > 0 ? `
-                            <div style="margin-top: 8px;">
-                                ${a.tags.map(t => `<span class="tag">${t}</span>`).join('')}
-                            </div>
-                        ` : ''}
-                        <div class="article-meta" style="margin-top: 8px;">
-                            ${new Date(a.created_at).toLocaleDateString('ru-RU')}
-                        </div>
-                    </div>
-                `).join('');
-            } catch (err) {
-                document.getElementById('articlesList').innerHTML = 
-                    '<div class="loading">Ошибка загрузки</div>';
-            }
-        }
-
-        async function addArticle() {
-            const url = document.getElementById('urlInput').value.trim();
-            if (!url) return;
-            
-            const btn = document.getElementById('addBtn');
-            btn.disabled = true;
-            btn.textContent = 'Добавляем...';
-            
-            try {
-                await fetch(`${API_BASE}/articles`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url })
-                });
-                
-                document.getElementById('urlInput').value = '';
-                await loadArticles();
-            } catch (err) {
-                alert('Ошибка добавления');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Добавить';
-            }
-        }
-        // Автоматическая проверка обновлений
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').then(reg => {
-    // Проверяем обновления при каждом запуске
-    reg.update();
-    
-    // Проверяем каждые 5 минут
-    setInterval(() => reg.update(), 5 * 60 * 1000);
-    
-    // Когда найдётся обновление — активируем сразу
-    reg.addEventListener('updatefound', () => {
-      const newWorker = reg.installing;
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          // Новая версия готова — перезагружаем страницу
-          window.location.reload();
-        }
-      });
     });
-  });
 }
 
-        loadArticles();
-        initInstallButton();
+function showAuth() {
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('authScreen').style.display = 'block';
+}
+
+function showApp() {
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    loadArticles();
+}
+
+async function register() {
+    const username = document.getElementById('regUsername').value.trim();
+    const password = document.getElementById('regPassword').value;
+    if (!username || !password) return alert('Заполни все поля');
+    
+    try {
+        const res = await fetch(`${API_BASE}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            return alert(err.detail || 'Ошибка регистрации');
+        }
+        const data = await res.json();
+        token = data.access_token;
+        localStorage.setItem('token', token);
+        showApp();
+    } catch (err) {
+        alert('Ошибка регистрации');
+    }
+}
+
+async function login() {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!username || !password) return alert('Заполни все поля');
+    
+    try {
+        const res = await fetch(`${API_BASE}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        if (!res.ok) return alert('Неверный логин или пароль');
+        const data = await res.json();
+        token = data.access_token;
+        localStorage.setItem('token', token);
+        showApp();
+    } catch (err) {
+        alert('Ошибка входа');
+    }
+}
+
+function logout() {
+    localStorage.removeItem('token');
+    token = null;
+    showAuth();
+}
+
+async function loadArticles() {
+    try {
+        const res = await fetch(`${API_BASE}/articles`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) return logout();
+        const articles = await res.json();
+        
+        const list = document.getElementById('articlesList');
+        if (articles.length === 0) {
+            list.innerHTML = '<div class="loading">Пока нет статей. Добавь первую!</div>';
+            return;
+        }
+        
+        list.innerHTML = articles.map(a => `
+            <div class="article">
+                <div class="article-title">
+                    <a href="${a.url}" target="_blank">${a.title || a.url}</a>
+                </div>
+                ${a.summary ? `
+                    <div style="margin-top: 12px; padding: 12px; background: #0d1117; border-radius: 4px; font-size: 14px; line-height: 1.6;">
+                        ${a.summary.replace(/\n/g, '<br>')}
+                    </div>
+                ` : ''}
+                ${a.tags && a.tags.length > 0 ? `
+                    <div style="margin-top: 8px;">
+                        ${a.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+                    </div>
+                ` : ''}
+                <div class="article-meta" style="margin-top: 8px;">
+                    ${new Date(a.created_at).toLocaleDateString('ru-RU')}
+                </div>
+            </div>
+        `).join('');
+    } catch (err) {
+        document.getElementById('articlesList').innerHTML = 
+            '<div class="loading">Ошибка загрузки</div>';
+    }
+}
+
+async function addArticle() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url) return;
+    
+    const btn = document.getElementById('addBtn');
+    btn.disabled = true;
+    btn.textContent = 'Добавляем...';
+    
+    try {
+        const res = await fetch(`${API_BASE}/articles`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ url })
+        });
+        
+        if (res.status === 401) return logout();
+        
+        document.getElementById('urlInput').value = '';
+        await loadArticles();
+    } catch (err) {
+        alert('Ошибка добавления');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Добавить';
+    }
+}
+
+function initInstallButton() {
+    if (isStandalone || localStorage.getItem('installDismissed')) return;
+    document.getElementById('installFab').style.display = 'flex';
+    if (!isIOS && !localStorage.getItem('androidModalShown')) {
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('androidModal').classList.add('show');
+            localStorage.setItem('androidModalShown', 'true');
+        });
+    }
+}
+
+function showInstallModal() {
+    if (isIOS) {
+        document.getElementById('iosModal').classList.add('show');
+    } else if (deferredPrompt) {
+        document.getElementById('androidModal').classList.add('show');
+    } else {
+        document.getElementById('iosModal').classList.add('show');
+    }
+}
+
+function installAndroid() {
+    if (!deferredPrompt) return closeModal('androidModal');
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choice) => {
+        deferredPrompt = null;
+        closeModal('androidModal');
+        if (choice.outcome === 'accepted') {
+            localStorage.setItem('appInstalled', 'true');
+            document.getElementById('installFab').style.display = 'none';
+        }
+    });
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('show');
+    localStorage.setItem('installDismissed', 'true');
+    document.getElementById('installFab').style.display = 'none';
+}
+
+window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    document.getElementById('installFab').style.display = 'none';
+    localStorage.setItem('appInstalled', 'true');
+});
+
+// Инициализация
+if (token) {
+    showApp();
+} else {
+    showAuth();
+}
+initInstallButton();
     </script>
 </body>
 </html>
