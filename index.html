@@ -437,6 +437,27 @@
                 btn.textContent = 'Добавить';
             }
         }
+        // Автоматическая проверка обновлений
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(reg => {
+    // Проверяем обновления при каждом запуске
+    reg.update();
+    
+    // Проверяем каждые 5 минут
+    setInterval(() => reg.update(), 5 * 60 * 1000);
+    
+    // Когда найдётся обновление — активируем сразу
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          // Новая версия готова — перезагружаем страницу
+          window.location.reload();
+        }
+      });
+    });
+  });
+}
 
         loadArticles();
         initInstallButton();
