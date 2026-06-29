@@ -96,8 +96,8 @@ def extract_article(url: str) -> dict:
 def generate_summary(text: str) -> dict:
     text = text[:10000]
     prompt = f"""Проанализируй следующий текст и верни JSON с двумя полями:
-1. "summary" - краткая выжимка на 3-5 пунктов (каждый пункт с новой строки, начинай с "- ")
-2. "tags" - массив из 3 релевантных тегов (короткие слова на русском)
+1. "summary" - краткая выжимка в виде ОДНОЙ СТРОКИ с пунктами, разделёнными переносами строки
+2. "tags" - массив из 3-5 релевантных тегов (короткие слова на русском)
 
 Текст:
 {text}
@@ -114,7 +114,18 @@ def generate_summary(text: str) -> dict:
         content = response.choices[0].message.content.strip()
         if content.startswith("```"):
             content = content.split("\n", 1)[1].rsplit("```", 1)[0]
-        return json.loads(content)
+        
+        result = json.loads(content)
+        
+        summary = result.get("summary", "")
+        if isinstance(summary, list):
+            summary = "\n".join(str(item) for item in summary)
+        
+        tags = result.get("tags", [])
+        if isinstance(tags, str):
+            tags = [t.strip() for t in tags.split(",")]
+        
+        return {"summary": str(summary), "tags": tags}
     except Exception as e:
         print(f"Mistral error: {e}")
         return {"summary": "Ошибка генерации саммари", "tags": []}
