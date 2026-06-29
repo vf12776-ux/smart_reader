@@ -1,35 +1,17 @@
 {
-  "version": 2,
   "builds": [
-    {
-      "src": "api/main.py",
-      "use": "@vercel/python"
-    },
-    {
-      "src": "index.html",
-      "use": "@vercel/static"
-    }
+    { "src": "api/main.py", "use": "@vercel/python" },
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "manifest.json", "use": "@vercel/static" },
+    { "src": "sw.js", "use": "@vercel/static" },
+    { "src": "icon-192.png", "use": "@vercel/static" },
+    { "src": "icon-512.png", "use": "@vercel/static" }
   ],
   "routes": [
-    {
-      "src": "/articles(.*)",
-      "dest": "api/main.py"
-    },
-    {
-      "src": "/health",
-      "dest": "api/main.py"
-    },
-    {
-      "src": "/docs",
-      "dest": "api/main.py"
-    },
-    {
-      "src": "/openapi.json",
-      "dest": "api/main.py"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+    { "src": "/api/(.*)", "dest": "api/main.py" },
+    { "src": "/manifest.json", "dest": "/manifest.json" },
+    { "src": "/sw.js", "dest": "/sw.js" },
+    { "src": "/icon-(.*)", "dest": "/icon-$1" },
+    { "src": "/", "dest": "/index.html" }
   ]
 }
