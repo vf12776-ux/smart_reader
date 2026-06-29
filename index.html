@@ -7,6 +7,9 @@
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#238636">
     <link rel="apple-touch-icon" href="/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Smart Reader">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -74,7 +77,36 @@
         }
         .loading { text-align: center; padding: 20px; color: #8b949e; }
         
-        /* Модальное окно установки */
+        /* Плавающая кнопка установки */
+        .install-fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #238636;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 14px 22px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(35, 134, 54, 0.4);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: pulse 2s infinite;
+        }
+        .install-fab:hover {
+            background: #2ea043;
+            transform: translateY(-2px);
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 4px 20px rgba(35, 134, 54, 0.4); }
+            50% { box-shadow: 0 4px 30px rgba(35, 134, 54, 0.7); }
+        }
+        
+        /* Модальное окно */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -95,6 +127,8 @@
             width: 90%;
             text-align: center;
             animation: slideUp 0.3s;
+            max-height: 90vh;
+            overflow-y: auto;
         }
         .modal-icon {
             font-size: 64px;
@@ -106,14 +140,56 @@
             font-size: 24px;
         }
         .modal p {
-            color: #8b949e;
-            margin-bottom: 24px;
+            color: #c9d1d9;
+            margin-bottom: 16px;
             line-height: 1.6;
         }
+        .modal-subtitle {
+            color: #8b949e;
+            font-size: 14px;
+        }
+        
+        /* Шаги инструкции iOS */
+        .steps {
+            text-align: left;
+            margin: 20px 0;
+        }
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #0d1117;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+        }
+        .step-number {
+            background: #1f6feb;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .step-content {
+            flex: 1;
+            line-height: 1.5;
+        }
+        .step-icon {
+            font-size: 20px;
+            margin: 0 4px;
+        }
+        
         .modal-buttons {
             display: flex;
             gap: 12px;
             justify-content: center;
+            margin-top: 24px;
         }
         .modal-btn {
             padding: 12px 24px;
@@ -157,8 +233,14 @@
         <div class="loading">Загрузка...</div>
     </div>
 
-    <!-- Модальное окно установки -->
-    <div class="modal-overlay" id="installModal">
+    <!-- Плавающая кнопка установки -->
+    <button class="install-fab" id="installFab" style="display:none" onclick="showInstallModal()">
+        <span>📲</span>
+        <span>Установить</span>
+    </button>
+
+    <!-- Модалка Android -->
+    <div class="modal-overlay" id="androidModal">
         <div class="modal">
             <div class="modal-icon">📲</div>
             <h2>Установи Smart Reader</h2>
@@ -167,11 +249,53 @@
                 Работает как обычная программа — без вкладок браузера.
             </p>
             <div class="modal-buttons">
-                <button class="modal-btn modal-btn-primary" onclick="installApp()">
+                <button class="modal-btn modal-btn-primary" onclick="installAndroid()">
                     📥 Установить
                 </button>
-                <button class="modal-btn modal-btn-secondary" onclick="closeModal()">
+                <button class="modal-btn modal-btn-secondary" onclick="closeModal('androidModal')">
                     Позже
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка iOS -->
+    <div class="modal-overlay" id="iosModal">
+        <div class="modal">
+            <div class="modal-icon">🍎</div>
+            <h2>Установи на iPhone</h2>
+            <p class="modal-subtitle">
+                Добавь Smart Reader на главный экран — будет как обычное приложение
+            </p>
+            
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        Нажми кнопку <span class="step-icon">📤</span> <b>"Поделиться"</b> в нижней панели Safari
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        Прокрути вниз и выбери <span class="step-icon">➕</span> <b>"На экран Домой"</b>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        Нажми <b>"Добавить"</b> в правом верхнем углу
+                    </div>
+                </div>
+            </div>
+            
+            <p class="modal-subtitle">
+                Готово! Иконка 📚 появится на рабочем столе
+            </p>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-primary" onclick="closeModal('iosModal')">
+                    Понятно
                 </button>
             </div>
         </div>
@@ -180,6 +304,12 @@
     <script>
         const API_BASE = 'https://smart-reader-nine.vercel.app';
         let deferredPrompt = null;
+        
+        // Определяем платформу
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                            window.navigator.standalone;
 
         // Регистрация service worker
         if ('serviceWorker' in navigator) {
@@ -188,49 +318,63 @@
                 .catch(err => console.log('SW error:', err));
         }
 
-        // Обработка события установки PWA
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
+        // Показываем кнопку установки, если приложение ещё не установлено
+        function initInstallButton() {
+            if (isStandalone) return; // Уже установлено
+            if (localStorage.getItem('installDismissed')) return; // Пользователь закрыл
             
-            // Показываем модалку, если пользователь ещё не закрывал её
-            if (!localStorage.getItem('installDismissed')) {
-                document.getElementById('installModal').classList.add('show');
+            document.getElementById('installFab').style.display = 'flex';
+            
+            // Для Android — показываем модалку сразу при первом визите
+            if (!isIOS && !localStorage.getItem('androidModalShown')) {
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    document.getElementById('androidModal').classList.add('show');
+                    localStorage.setItem('androidModalShown', 'true');
+                });
             }
-        });
+        }
 
-        // Отслеживаем, когда приложение установлено
-        window.addEventListener('appinstalled', () => {
-            console.log('PWA installed');
-            deferredPrompt = null;
-            document.getElementById('installModal').classList.remove('show');
-            localStorage.setItem('appInstalled', 'true');
-        });
+        function showInstallModal() {
+            if (isIOS) {
+                document.getElementById('iosModal').classList.add('show');
+            } else if (deferredPrompt) {
+                document.getElementById('androidModal').classList.add('show');
+            } else {
+                // Если beforeinstallprompt не сработал — показываем iOS-инструкцию как fallback
+                document.getElementById('iosModal').classList.add('show');
+            }
+        }
 
-        function installApp() {
+        function installAndroid() {
             if (!deferredPrompt) {
-                closeModal();
+                closeModal('androidModal');
                 return;
             }
             deferredPrompt.prompt();
             deferredPrompt.userChoice.then((choice) => {
-                if (choice.outcome === 'accepted') {
-                    console.log('User installed');
-                }
                 deferredPrompt = null;
-                document.getElementById('installModal').classList.remove('show');
+                closeModal('androidModal');
+                if (choice.outcome === 'accepted') {
+                    localStorage.setItem('appInstalled', 'true');
+                    document.getElementById('installFab').style.display = 'none';
+                }
             });
         }
 
-        function closeModal() {
-            document.getElementById('installModal').classList.remove('show');
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
             localStorage.setItem('installDismissed', 'true');
+            document.getElementById('installFab').style.display = 'none';
         }
 
-        // Скрываем модалку, если приложение уже установлено
-        if (window.matchMedia('(display-mode: standalone)').matches || localStorage.getItem('appInstalled')) {
-            // Уже установлено — ничего не делаем
-        }
+        // Отслеживаем установку
+        window.addEventListener('appinstalled', () => {
+            deferredPrompt = null;
+            document.getElementById('installFab').style.display = 'none';
+            localStorage.setItem('appInstalled', 'true');
+        });
 
         async function loadArticles() {
             try {
@@ -295,6 +439,7 @@
         }
 
         loadArticles();
+        initInstallButton();
     </script>
 </body>
 </html>
