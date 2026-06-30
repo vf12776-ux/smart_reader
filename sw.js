@@ -1,10 +1,9 @@
-const CACHE_NAME = 'smart-reader-v1.0.2';
+const CACHE_NAME = 'smart-reader-v1.0.3';
 const STATIC_ASSETS = [
   '/icon-192.png',
   '/icon-512.png'
 ];
 
-// Устанавливаем сразу
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
@@ -12,7 +11,6 @@ self.addEventListener('install', event => {
   );
 });
 
-// Активируем сразу, удаляем старые кэши
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(names => {
@@ -23,11 +21,9 @@ self.addEventListener('activate', event => {
   );
 });
 
-// HTML — всегда из сети, статика — из кэша
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   
-  // HTML и API — всегда из сети
   if (event.request.mode === 'navigate' || 
       url.pathname === '/' || 
       url.pathname === '/index.html' ||
@@ -47,7 +43,6 @@ self.addEventListener('fetch', event => {
     return;
   }
   
-  // Статика — из кэша
   event.respondWith(
     caches.match(event.request).then(cached => {
       return cached || fetch(event.request).then(response => {

@@ -32,6 +32,7 @@ mistral_client = OpenAI(
 )
 
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global pool
@@ -47,6 +48,7 @@ async def lifespan(app: FastAPI):
         max_size=5,
     )
     async with pool.acquire() as conn:
+        # Создаём таблицу users
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -55,6 +57,8 @@ async def lifespan(app: FastAPI):
                 created_at TIMESTAMPTZ DEFAULT NOW()
             );
         """)
+        
+        # Создаём таблицу articles
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS articles (
                 id SERIAL PRIMARY KEY,
@@ -68,9 +72,27 @@ async def lifespan(app: FastAPI):
                 UNIQUE(user_id, url)
             );
         """)
+        
+        # Миграция: если колонки user_id нет — добавляем
+        column_check = await conn.fetch("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name='articles' AND column_name='user_id'
+        """)
+        if not column_check:
+            await conn.execute("""
+                ALTER TABLE articles ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+            """)
+            # Удаляем старый уникальный констрейнт (если есть)
+            await conn.execute("""
+                ALTER TABLE articles DROP CONSTRAINT IF EXISTS articles_url_key
+            """)
+            # Добавляем новый уникальный констрейнт
+            await conn.execute("""
+                ALTER TABLE articles ADD CONSTRAINT articles_user_id_url_key UNIQUE (user_id, url)
+            """)
     yield
     await pool.close()
-
 
 app = FastAPI(title="Smart Reader API", lifespan=lifespan)
 
