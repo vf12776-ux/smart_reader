@@ -76,8 +76,6 @@
             margin-right: 4px;
         }
         .loading { text-align: center; padding: 20px; color: #8b949e; }
-        
-        /* Модалка приветствия */
         .welcome-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -86,7 +84,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            animation: fadeIn 0.3s;
         }
         .welcome-modal {
             background: #161b22;
@@ -116,8 +113,6 @@
         .welcome-modal button {
             width: 100%;
         }
-        
-        /* Плавающая кнопка установки */
         .install-fab {
             position: fixed;
             bottom: 24px;
@@ -137,13 +132,10 @@
             gap: 8px;
             animation: pulse 2s infinite;
         }
-        .install-fab:hover { background: #2ea043; }
         @keyframes pulse {
             0%, 100% { box-shadow: 0 4px 20px rgba(35, 134, 54, 0.4); }
             50% { box-shadow: 0 4px 30px rgba(35, 134, 54, 0.7); }
         }
-        
-        /* Модалка установки */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -166,19 +158,16 @@
             overflow-y: auto;
         }
         .modal-icon { font-size: 64px; margin-bottom: 16px; }
-        .modal h2 { color: #58a6ff; margin-bottom: 12px; font-size: 24px; }
+        .modal h2 { color: #58a6ff; margin-bottom: 12px; }
         .modal p { color: #c9d1d9; margin-bottom: 16px; line-height: 1.6; }
-        .modal-subtitle { color: #8b949e; font-size: 14px; }
         .steps { text-align: left; margin: 20px 0; }
         .step {
             display: flex;
-            align-items: flex-start;
             gap: 12px;
             margin-bottom: 16px;
             padding: 12px;
             background: #0d1117;
             border-radius: 8px;
-            border: 1px solid #30363d;
         }
         .step-number {
             background: #1f6feb;
@@ -192,8 +181,6 @@
             font-weight: 700;
             flex-shrink: 0;
         }
-        .step-content { flex: 1; line-height: 1.5; }
-        .step-icon { font-size: 20px; margin: 0 4px; }
         .modal-buttons { display: flex; gap: 12px; justify-content: center; margin-top: 24px; }
         .modal-btn {
             padding: 12px 24px;
@@ -201,34 +188,25 @@
             font-weight: 600;
             cursor: pointer;
             border: none;
-            font-size: 14px;
         }
         .modal-btn-primary { background: #238636; color: white; }
-        .modal-btn-primary:hover { background: #2ea043; }
         .modal-btn-secondary { background: transparent; color: #8b949e; border: 1px solid #30363d; }
-        
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
-    <!-- Модалка приветствия -->
     <div class="welcome-overlay" id="welcomeScreen" style="display:none;">
         <div class="welcome-modal">
             <h2>📚 Smart Reader</h2>
-            <p>Как тебя зовут?<br><small style="color:#8b949e">Это имя будет привязано к твоим статьям</small></p>
+            <p>Как тебя зовут?</p>
             <input type="text" id="welcomeName" placeholder="Твоё имя" maxlength="30" />
             <button onclick="createAccount()">Начать</button>
         </div>
     </div>
 
-    <!-- Основное приложение -->
     <div id="mainApp" style="display:none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h1>📚 Smart Reader</h1>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <span id="userName" style="color: #8b949e; font-size: 14px;"></span>
-                <button onclick="logout()" style="padding: 6px 12px; background: #da3633; font-size: 12px;">Выйти</button>
-            </div>
+            <button onclick="logout()" style="padding: 6px 12px; background: #da3633; font-size: 12px;">Выйти</button>
         </div>
         
         <div class="input-group">
@@ -241,42 +219,38 @@
         </div>
     </div>
 
-    <!-- Кнопка установки -->
     <button class="install-fab" id="installFab" style="display:none" onclick="showInstallModal()">
-        <span>📲</span><span>Установить</span>
+        📲 Установить
     </button>
 
-    <!-- Модалка Android -->
     <div class="modal-overlay" id="androidModal">
         <div class="modal">
             <div class="modal-icon">📲</div>
             <h2>Установи Smart Reader</h2>
-            <p>Получи быстрый доступ с рабочего стола.<br>Работает как обычная программа.</p>
+            <p>Получи быстрый доступ с рабочего стола.</p>
             <div class="modal-buttons">
-                <button class="modal-btn modal-btn-primary" onclick="installAndroid()">📥 Установить</button>
+                <button class="modal-btn modal-btn-primary" onclick="installAndroid()">Установить</button>
                 <button class="modal-btn modal-btn-secondary" onclick="closeModal('androidModal')">Позже</button>
             </div>
         </div>
     </div>
 
-    <!-- Модалка iOS -->
     <div class="modal-overlay" id="iosModal">
         <div class="modal">
             <div class="modal-icon">🍎</div>
             <h2>Установи на iPhone</h2>
-            <p class="modal-subtitle">Добавь на главный экран</p>
             <div class="steps">
                 <div class="step">
                     <div class="step-number">1</div>
-                    <div class="step-content">Нажми <span class="step-icon">📤</span> <b>"Поделиться"</b></div>
+                    <div>Нажми "Поделиться"</div>
                 </div>
                 <div class="step">
                     <div class="step-number">2</div>
-                    <div class="step-content">Выбери <span class="step-icon">➕</span> <b>"На экран Домой"</b></div>
+                    <div>Выбери "На экран Домой"</div>
                 </div>
                 <div class="step">
                     <div class="step-number">3</div>
-                    <div class="step-content">Нажми <b>"Добавить"</b></div>
+                    <div>Нажми "Добавить"</div>
                 </div>
             </div>
             <div class="modal-buttons">
@@ -291,31 +265,19 @@
         let username = localStorage.getItem('username');
         let deferredPrompt = null;
         
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                            window.navigator.standalone;
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
 
-        // Service worker
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').then(reg => {
-                reg.update();
-                setInterval(() => reg.update(), 5 * 60 * 1000);
-                reg.addEventListener('updatefound', () => {
-                    const newWorker = reg.installing;
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            window.location.reload();
-                        }
-                    });
-                });
-            });
+            navigator.serviceWorker.register('/sw.js');
         }
 
-        // Создание аккаунта
         async function createAccount() {
             const name = document.getElementById('welcomeName').value.trim();
-            if (!name) return alert('Введи имя');
+            if (!name) {
+                alert('Введи имя');
+                return;
+            }
             
             try {
                 const res = await fetch(`${API_BASE}/auto-register`, {
@@ -325,8 +287,8 @@
                 });
                 
                 if (!res.ok) {
-                    const err = await res.json();
-                    return alert(err.detail || 'Ошибка');
+                    alert('Ошибка подключения');
+                    return;
                 }
                 
                 const data = await res.json();
@@ -335,34 +297,49 @@
                 localStorage.setItem('token', token);
                 localStorage.setItem('username', username);
                 
-                document.getElementById('welcomeScreen').style.display = 'none';
-                document.getElementById('mainApp').style.display = 'block';
-                document.getElementById('userName').textContent = `Привет, ${name}`;
-                loadArticles();
+                showMainApp();
             } catch (err) {
                 alert('Ошибка подключения');
             }
         }
 
+        function showMainApp() {
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            loadArticles();
+        }
+
         function logout() {
-            if (!confirm('Выйти? Твои статьи останутся, но нужно будет ввести имя заново')) return;
             localStorage.removeItem('token');
             localStorage.removeItem('username');
-            token = null;
-            username = null;
             location.reload();
         }
 
-        // Загрузка статей
         async function loadArticles() {
+            if (!token) {
+                document.getElementById('welcomeScreen').style.display = 'flex';
+                return;
+            }
+            
             try {
                 const res = await fetch(`${API_BASE}/articles`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                if (res.status === 401) return logout();
-                const articles = await res.json();
                 
+                if (res.status === 401) {
+                    logout();
+                    return;
+                }
+                
+                if (!res.ok) {
+                    document.getElementById('articlesList').innerHTML = 
+                        '<div class="loading">Ошибка загрузки статей</div>';
+                    return;
+                }
+                
+                const articles = await res.json();
                 const list = document.getElementById('articlesList');
+                
                 if (articles.length === 0) {
                     list.innerHTML = '<div class="loading">Пока нет статей. Добавь первую!</div>';
                     return;
@@ -394,7 +371,6 @@
             }
         }
 
-        // Добавление статьи
         async function addArticle() {
             const url = document.getElementById('urlInput').value.trim();
             if (!url) return;
@@ -413,10 +389,13 @@
                     body: JSON.stringify({ url })
                 });
                 
-                if (res.status === 401) return logout();
+                if (res.status === 401) {
+                    logout();
+                    return;
+                }
+                
                 if (!res.ok) {
-                    const err = await res.json();
-                    alert(err.detail || 'Ошибка');
+                    alert('Ошибка добавления');
                     return;
                 }
                 
@@ -430,16 +409,14 @@
             }
         }
 
-        // Установка
         function initInstallButton() {
             if (isStandalone || localStorage.getItem('installDismissed')) return;
             document.getElementById('installFab').style.display = 'flex';
-            if (!isIOS && !localStorage.getItem('androidModalShown')) {
+            if (!isIOS) {
                 window.addEventListener('beforeinstallprompt', (e) => {
                     e.preventDefault();
                     deferredPrompt = e;
                     document.getElementById('androidModal').classList.add('show');
-                    localStorage.setItem('androidModalShown', 'true');
                 });
             }
         }
@@ -457,13 +434,9 @@
         function installAndroid() {
             if (!deferredPrompt) return closeModal('androidModal');
             deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choice) => {
+            deferredPrompt.userChoice.then(() => {
                 deferredPrompt = null;
                 closeModal('androidModal');
-                if (choice.outcome === 'accepted') {
-                    localStorage.setItem('appInstalled', 'true');
-                    document.getElementById('installFab').style.display = 'none';
-                }
             });
         }
 
@@ -473,17 +446,8 @@
             document.getElementById('installFab').style.display = 'none';
         }
 
-        window.addEventListener('appinstalled', () => {
-            deferredPrompt = null;
-            document.getElementById('installFab').style.display = 'none';
-            localStorage.setItem('appInstalled', 'true');
-        });
-
-        // Инициализация
         if (token && username) {
-            document.getElementById('mainApp').style.display = 'block';
-            document.getElementById('userName').textContent = `Привет, ${username}`;
-            loadArticles();
+            showMainApp();
         } else {
             document.getElementById('welcomeScreen').style.display = 'flex';
         }
